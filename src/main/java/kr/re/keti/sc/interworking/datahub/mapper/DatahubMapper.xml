@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.re.keti.sc.interworking.datahub.mapper.DatahubMapper">
+
+	<resultMap id="MappingRule" type="kr.re.keti.sc.interworking.integrationplatform.model.MappingRule" autoMapping="true">
+		<id property="integrationPlatformEventId" column="integration_platform_event_id"/>
+		<result property="datahubEntityType" column="datahub_entity_type"/>
+		<result property="integrationPlatformEventIdDetail" column="integration_platform_event_id_detail"/>
+		<result property="datahubDatasetId" column="datahub_dataset_id"/>
+		<result property="integrationPlatformEventName" column="integration_platform_event_name"/>
+		<result property="integrationPlatformEventGrade" column="integration_platform_event_grade"/>
+		<result property="integrationPlatformOccurenceEventContent" column="integration_platform_occurrence_event_content"/>
+		<result property="integrationPlatformEventDetailCode" column="integration_platform_occurrence_event_detail_code"/>
+		<result property="integrationPlatformEventDetailCodeDetail" column="integration_platform_occurrence_event_detail_code_detail"/>
+
+		<collection property="attributes" ofType="kr.re.keti.sc.interworking.integrationplatform.model.MappingRule$Attribute">
+			<id property="integrationPlatformAttributeName" column="integration_platform_attribute_name"/>
+			<result property="integrationPlatformAttributeDataType" column="integration_platform_attribute_datatype" typeHandler="kr.re.keti.sc.interworking.datahub.model.AttributeDataTypeTypeHandler"/>
+			<result property="datahubAttributeName" column="datahub_attribute_name"/>
+			<result property="datahubAttributeType" column="datahub_attribute_type" typeHandler="kr.re.keti.sc.interworking.datahub.model.AttributeTypeTypeHandler"/>
+			<result property="datahubAttributeDataType" column="datahub_attribute_datatype" typeHandler="kr.re.keti.sc.interworking.datahub.model.AttributeDataTypeTypeHandler"/>
+			<result property="datahubAttributeHasObservedAt" column="datahub_attribute_has_observed_at"/>
+		</collection>
+	</resultMap>
+
+	<select id="selectMappingRule" resultMap="MappingRule" parameterType="kr.re.keti.sc.interworking.datahub.model.QueryValue">
+		SELECT event_mapping_rule.integration_platform_event_id,
+			   event_mapping_rule.datahub_entity_type,
+			   event_mapping_rule.integration_platform_event_id_detail,
+			   event_mapping_rule.datahub_dataset_id,
+			   event_mapping_rule.integration_platform_event_name,
+			   event_mapping_rule.integration_platform_event_grade,
+			   event_mapping_rule.integration_platform_occurrence_event_content,
+			   event_mapping_rule.integration_platform_occurrence_event_detail_code,
+			   event_mapping_rule.integration_platform_occurrence_event_detail_code_detail,
+			attribute_mapping_rule.integration_platform_attribute_name, attribute_mapping_rule.integration_platform_attribute_datatype,
+			attribute_mapping_rule.datahub_attribute_name, attribute_mapping_rule.datahub_attribute_type, attribute_mapping_rule.datahub_attribute_datatype, attribute_mapping_rule.datahub_attribute_has_observed_at
+		FROM integration_platform.event_mapping_rule, integration_platform.attribute_mapping_rule 
+		WHERE event_mapping_rule.integration_platform_event_id = attribute_mapping_rule.integration_platform_event_id
+		AND event_mapping_rule.integration_platform_event_id_detail = attribute_mapping_rule.integration_platform_event_id_detail
+		AND event_mapping_rule.datahub_entity_type = #{datahubEntityType}
+	</select>
+</mapper>

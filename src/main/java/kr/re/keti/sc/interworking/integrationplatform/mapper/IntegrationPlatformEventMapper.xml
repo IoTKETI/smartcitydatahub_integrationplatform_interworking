@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.re.keti.sc.interworking.integrationplatform.mapper.IntegrationPlatformEventMapper">
+
+	<resultMap id="MappingRule" type="kr.re.keti.sc.interworking.integrationplatform.model.MappingRule" autoMapping="true">
+		<id property="integrationPlatformEventId" column="integration_platform_event_id"/>
+		<id property="integrationPlatformEventIdDetail" column="integration_platform_event_id_detail"/>
+		<result property="datahubEntityType" column="datahub_entity_type"/>
+		<result property="datahubDatasetId" column="datahub_dataset_id"/>
+		
+		<collection property="attributes" ofType="kr.re.keti.sc.interworking.integrationplatform.model.MappingRule$Attribute">
+			<id property="integrationPlatformAttributeName" column="integration_platform_attribute_name"/>
+			<result property="integrationPlatformAttributeDataType" column="integration_platform_attribute_datatype" typeHandler="kr.re.keti.sc.interworking.datahub.model.AttributeDataTypeTypeHandler"/>
+			<result property="datahubAttributeName" column="datahub_attribute_name"/>
+			<result property="datahubAttributeType" column="datahub_attribute_type" typeHandler="kr.re.keti.sc.interworking.datahub.model.AttributeTypeTypeHandler"/>
+			<result property="datahubAttributeDataType" column="datahub_attribute_datatype" typeHandler="kr.re.keti.sc.interworking.datahub.model.AttributeDataTypeTypeHandler"/>
+			<result property="datahubAttributeHasObservedAt" column="datahub_attribute_has_observed_at"/>
+		</collection>
+	</resultMap>
+	
+	<resultMap id="IntegrationPlatformEventHistory" type="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventHistory" autoMapping="true">
+		<result property="processStatus" column="process_status" typeHandler="kr.re.keti.sc.interworking.integrationplatform.model.ProcessStatusTypeHandler"/>
+		<result property="receivedBodyData" column="received_body_data"/>
+		<result property="creationTime" column="creation_time"/>
+		<result property="modificationTime" column="modification_time"/>
+		<result property="integrationPlatformEventMessage" column="serialized_event_data" typeHandler="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventTypeHandler"/>		
+	</resultMap>
+	
+	<resultMap id="IntegrationPlatformEventBase" type="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventBase" autoMapping="true">
+		<result property="creationTime" column="creation_time"/>
+		<result property="modificationTime" column="modification_time"/>
+		<result property="integrationPlatformEventMessage" column="serialized_event_data" typeHandler="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventTypeHandler"/>
+	</resultMap>
+	
+	<select id="selectMappingRule" resultMap="MappingRule" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventHistory">
+		SELECT event_mapping_rule.integration_platform_event_id, event_mapping_rule.integration_platform_event_id_detail, event_mapping_rule.datahub_entity_type, event_mapping_rule.datahub_dataset_id,
+			attribute_mapping_rule.integration_platform_attribute_name, attribute_mapping_rule.integration_platform_attribute_datatype,
+			attribute_mapping_rule.datahub_attribute_name, attribute_mapping_rule.datahub_attribute_type, attribute_mapping_rule.datahub_attribute_datatype, attribute_mapping_rule.datahub_attribute_has_observed_at
+		FROM integration_platform.event_mapping_rule, integration_platform.attribute_mapping_rule 
+		WHERE event_mapping_rule.integration_platform_event_id = attribute_mapping_rule.integration_platform_event_id
+		AND event_mapping_rule.integration_platform_event_id_detail = attribute_mapping_rule.integration_platform_event_id_detail
+		AND attribute_mapping_rule.integration_platform_event_id = #{integrationPlatformEventMessage.body.eventId}
+		AND (attribute_mapping_rule.integration_platform_event_id_detail = '*' OR attribute_mapping_rule.integration_platform_event_id_detail = #{integrationPlatformEventMessage.sendCode})
+	</select>
+	
+	<insert id="insertIntegrationPlatformEventBase" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventBase" keyProperty="integrationPlatformEventMessage.body.eventId, integrationPlatformEventMessage.body.occurrenceNumber, integrationPlatformEventMessage.sendCode">
+		INSERT INTO integration_platform.integration_platform_received_event_base(
+			event_id,
+			occurrence_number,
+			occurrence_status,
+			occurrence_event_status_detail,
+			occurrence_event_time,
+			occurrence_event_end_time,
+			serialized_event_data,
+			creation_time,
+			send_code,
+			receive_code)
+		VALUES (
+			#{integrationPlatformEventMessage.body.eventId},
+			#{integrationPlatformEventMessage.body.occurrenceNumber},
+			#{integrationPlatformEventMessage.body.occurrenceStatus},
+			#{integrationPlatformEventMessage.body.occurrenceEventStatus.occurrenceEventStatusDetail},
+			#{integrationPlatformEventMessage.body.occurrenceEventTime},
+			#{integrationPlatformEventMessage.body.occurrenceEventEndTime},
+			#{integrationPlatformEventMessage, typeHandler=kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventTypeHandler},
+			now(),
+			#{integrationPlatformEventMessage.sendCode},
+			#{integrationPlatformEventMessage.receiveCode}
+			);
+	</insert>
+	
+	<update id="updateIntegrationPlatformEventBase" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventBase">
+		UPDATE integration_platform.integration_platform_received_event_base
+		SET 
+			event_id=#{integrationPlatformEventMessage.body.eventId, jdbcType=VARCHAR},
+			occurrence_number=#{integrationPlatformEventMessage.body.occurrenceNumber, jdbcType=VARCHAR},
+			occurrence_status=#{integrationPlatformEventMessage.body.occurrenceStatus, jdbcType=VARCHAR},
+			occurrence_event_status_detail=#{integrationPlatformEventMessage.body.occurrenceEventStatus.occurrenceEventStatusDetail, jdbcType=VARCHAR},
+			occurrence_event_time=#{integrationPlatformEventMessage.body.occurrenceEventTime, jdbcType=TIMESTAMP},
+			occurrence_event_end_time=#{integrationPlatformEventMessage.body.occurrenceEventEndTime, jdbcType=TIMESTAMP},
+			serialized_event_data=#{integrationPlatformEventMessage, jdbcType=VARCHAR, typeHandler=kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventTypeHandler},
+			modification_time=now(),
+			send_code=#{integrationPlatformEventMessage.sendCode, jdbcType=VARCHAR},
+			receive_code=#{integrationPlatformEventMessage.receiveCode, jdbcType=VARCHAR}
+		WHERE event_id = #{integrationPlatformEventMessage.body.eventId} 
+		AND occurrence_number = #{integrationPlatformEventMessage.body.occurrenceNumber} 
+		AND send_code = #{integrationPlatformEventMessage.sendCode};
+	</update>
+	
+	<select id="selectIntegrationPlatformEventBase" resultMap="IntegrationPlatformEventBase" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventHistory">
+		SELECT event_id, occurrence_number, occurrence_status, occurrence_event_status_detail, occurrence_event_time, occurrence_event_end_time, serialized_event_data, creation_time, modification_time, send_code, receive_code
+		FROM integration_platform.integration_platform_received_event_base
+		WHERE event_id = #{integrationPlatformEventMessage.body.eventId} AND occurrence_number = #{integrationPlatformEventMessage.body.occurrenceNumber} AND send_code = #{integrationPlatformEventMessage.sendCode};
+	</select>
+	
+	<insert id="insertIntegrationPlatformEventHistory" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventHistory">
+		INSERT INTO integration_platform.integration_platform_received_event_history(
+			event_id,
+			occurrence_number,
+			occurrence_status,
+			occurrence_event_status_detail,
+			occurrence_event_time,
+			occurrence_event_end_time,
+			received_body_data,
+			serialized_event_data,
+			creation_time,
+			process_status,
+			send_code,
+			receive_code)
+		VALUES (
+			#{integrationPlatformEventMessage.body.eventId},
+			#{integrationPlatformEventMessage.body.occurrenceNumber},
+			#{integrationPlatformEventMessage.body.occurrenceStatus},
+			#{integrationPlatformEventMessage.body.occurrenceEventStatus.occurrenceEventStatusDetail},
+			#{integrationPlatformEventMessage.body.occurrenceEventTime},
+			#{integrationPlatformEventMessage.body.occurrenceEventEndTime},
+			#{receivedBodyData},
+			#{integrationPlatformEventMessage, typeHandler=kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventTypeHandler},
+			now(),
+			#{processStatus},
+			#{integrationPlatformEventMessage.sendCode},
+			#{integrationPlatformEventMessage.receiveCode}
+			);
+	</insert>
+	
+	<update id="updateIntegrationPlatformEventHistory" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventHistory">
+		UPDATE integration_platform.integration_platform_received_event_history
+		SET 
+			event_id=#{integrationPlatformEventMessage.body.eventId, jdbcType=VARCHAR},
+			occurrence_number=#{integrationPlatformEventMessage.body.occurrenceNumber, jdbcType=VARCHAR},
+			occurrence_status=#{integrationPlatformEventMessage.body.occurrenceStatus, jdbcType=VARCHAR},
+			occurrence_event_status_detail=#{integrationPlatformEventMessage.body.occurrenceEventStatus.occurrenceEventStatusDetail, jdbcType=VARCHAR},
+			occurrence_event_time=#{integrationPlatformEventMessage.body.occurrenceEventTime, jdbcType=TIMESTAMP},
+			occurrence_event_end_time=#{integrationPlatformEventMessage.body.occurrenceEventEndTime, jdbcType=TIMESTAMP},
+			serialized_event_data=#{integrationPlatformEventMessage, jdbcType=VARCHAR, typeHandler=kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventTypeHandler},
+			received_body_data=#{receivedBodyData, jdbcType=VARCHAR},
+			modification_time=now(),
+			process_status=#{processStatus, jdbcType=VARCHAR, typeHandler=kr.re.keti.sc.interworking.integrationplatform.model.ProcessStatusTypeHandler},
+			send_code=#{integrationPlatformEventMessage.sendCode, jdbcType=VARCHAR},
+			receive_code=#{integrationPlatformEventMessage.receiveCode, jdbcType=VARCHAR}
+		WHERE sequence = #{sequence};
+	</update>
+	
+	<select id="selectNotProcessedIntegrationPlatformEventHistory" resultMap="IntegrationPlatformEventHistory">
+		SELECT sequence, event_id, occurrence_number, occurrence_status, occurrence_event_status_detail, occurrence_event_time, occurrence_event_end_time, received_body_data, serialized_event_data, creation_time, process_status, send_code, receive_code
+		FROM integration_platform.integration_platform_received_event_history WHERE process_status = 'NOT_PROCESSED' ORDER BY sequence ASC;
+	</select>
+	
+	<select id="selectAlreadyProcessedIntegrationPlatformEventHistory" parameterType="kr.re.keti.sc.interworking.integrationplatform.model.IntegrationPlatformEventHistory"  resultMap="IntegrationPlatformEventHistory">
+		SELECT sequence, event_id, occurrence_number, occurrence_status, occurrence_event_status_detail, occurrence_event_time, occurrence_event_end_time, received_body_data, serialized_event_data, creation_time, process_status, send_code, receive_code
+		FROM integration_platform.integration_platform_received_event_history 
+		WHERE event_id = #{integrationPlatformEventMessage.body.eventId} 
+		AND occurrence_number = #{integrationPlatformEventMessage.body.occurrenceNumber} 
+		AND send_code = #{integrationPlatformEventMessage.sendCode} 
+		AND #{creationTime} > creation_time;
+	</select>
+</mapper>

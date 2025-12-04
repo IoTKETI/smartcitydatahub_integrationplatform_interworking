@@ -1,0 +1,39 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: interworking
+
+# Datasource
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://postgres_ip:postgres_port/interworking
+    username: username
+    password: password
+
+# Logging
+logging:
+  level:
+    ROOT : DEBUG
+    
+datahub:
+  ingestInterfaceUri: http://datahub_ip:datahub_port/entityOperations/upsert
+  
+integrationPlatform:
+  authenticationUri: http://integrationPlatform_ip:integrationPlatform_port/api/getAuth.json
+#  eventUri: http://integrationPlatform_ip:integrationPlatform_port/api/reqEvent.json
+  eventUri: http://integrationPlatform_ip:integrationPlatform_port/linkHttp/recvEvent.json
+
+datahub-to-integrationPlatform:
+  encryptionYn: N
+  encryptionKey: [encryptionKey]
+  apiKey: [apiKey]
+  sendingCityCode: [sendingCityCode]
+  receivingCityCode: [receivingCityCode]
+  SystemCode: DHB
+  
+integrationPlatform-to-datahub:
+  encryptionKey: [encryptionKey]
+  apiKey: [apiKey]
+  scheduleMillisecond: 5000
